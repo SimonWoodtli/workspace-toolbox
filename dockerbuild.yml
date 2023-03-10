@@ -1,0 +1,248 @@
+jobs:
+  # Push Image to GitHub Packages.
+  # https://docs.docker.com/docker-hub/builds/
+  # https://docs.github.com/en/packages/learn-github-packages/introduction-to-github-packages
+  # https://pkgs.alpinelinux.org/package/edge/testing/x86_64/nix-openrc
+  # https://guix.gnu.org/en/download/
+  buildImage:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    # how to link the ghcr package to a repo? It supposed to be able to
+    # automatically fetch the readme.md from that repo and use it as a
+    # description for the package
+
+    steps:
+      - uses: actions/checkout@v2
+      
+      - name: Build Container Image
+        run: docker build . --file Dockerfile --tag $IMAGE_NAME --no-cache
+
+      - name: Log into GitHub Container Registry
+        # what scope is required for the token? add GITHUB_TOKEN required?
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login https://ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Push image to GitHub Container Registry
+        run: |
+          IMAGE_ID=ghcr.io/${{ github.repository_owner }}/$IMAGE_NAME:${{ github.run.id }}
+          docker push $IMAGE_ID
+
+
+## another example:
+name: Pro Deployment
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore: 
+      - .github
+  pull_request:
+
+env:
+  IMAGE_NAME: sampleapp
+  DOCKERFILE: app/Dockerfile
+  IMAGEPULLSECRET_NAME: ghcrsecret
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Build image
+        run: docker build ./app --file $DOCKERFILE --tag $IMAGE_NAME
+      
+      - name: Save image as Tar
+        run: docker save --output ${{ format('{0}/{1}.tar', github.workspace, env.IMAGE_NAME) }} $IMAGE_NAME
+      
+      - name: Publish image as artifact
+        uses: actions/upload-artifact@v2.2.2
+        with:
+          name: containerImage
+          path: ${{ format('{0}/{1}.tar', github.workspace, env.IMAGE_NAME) }}
+          if-no-files-found: error
+
+  # Push image to GitHub Container Registry.
+  push:
+    needs: build
+
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+
+    steps:
+      - uses: actions/checkout@v2   
+      
+      - name: Download the image
+        uses: actions/download-artifact@v2.0.8
+        with:
+          name: containerImage
+          path: ${{ github.workspace }} 
+      
+      - name: Load the image from Tar
+        # Create a PAT with `read:packages` and `write:packages` scopes and save it as an Actions secret `CR_PAT`
+        run: docker load --input ${{ format('{0}/{1}.tar', github.workspace, env.IMAGE_NAME) }}
+    
+      - name: Log into registry
+        run: echo "${{ secrets.CR_PAT }}" | docker login https://ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Push image
+        run: |
+          IMAGE_ID=ghcr.io/${{ github.repository_owner }}/$IMAGE_NAME:${{ github.run_id }}
+          # Change all uppercase to lowercase
+          IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
+          docker tag $IMAGE_NAME $IMAGE_ID
+          docker push $IMAGE_ID
+      - name: Publish Manifests
+        uses: actions/upload-artifact@v2.2.2
+        with:
+          name: manifests
+          path: kubernetes
+          if-no-files-found: error
+
+  # Deploy to AKS
+  deploy:
+    needs: [push]      
+    runs-on: ubuntu-latest
+    environment: 
+      name: Production
+    steps:
+      - name: Download the manifests
+        uses: actions/download-artifact@v2.0.8
+        with:
+          name: manifests
+          path: ${{ github.workspace }}/k8s 
+      
+      - name: Login to Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      
+      - name: Login to AKS
+        uses: azure/aks-set-context@v1
+        with:
+            creds: '${{ secrets.AZURE_CREDENTIALS }}'
+            resource-group: 'K8S_Examples'
+            cluster-name: 'K8S_Examples_cluster'
+        id: login
+      
+      - name: Create secret in AKS
+        uses: Azure/k8s-create-secret@v1.1
+        with:
+          container-registry-url: https://ghcr.io
+          container-registry-username: n3wt0n
+          container-registry-password: ${{ secrets.CR_PAT }}
+          secret-type: docker-registry
+          secret-name: ${{ env.IMAGEPULLSECRET_NAME }}          
+    
+      - name: Deploy to AKS
+        uses: Azure/k8s-deploy@v1.3
+        with:
+          manifests: |
+                ${{ github.workspace }}/k8s/deploymentghcr.yml
+                ${{ github.workspace }}/k8s/service.yml
+          images: ghcr.io/${{ github.repository_owner }}/${{env.IMAGE_NAME}}:${{ github.run_id }}
+          imagepullsecrets: ${{ env.IMAGEPULLSECRET_NAME }}
+          action: deploy
+
+# another example:
+name: Docker CI/CD
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - '**.ps1'
+      - '**/Dockerfile'
+
+env:
+  IMAGE_NAME: azdo2ghrepomigrator
+
+jobs:
+  # Build the image.
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Build the Container Image
+        run: docker build . --file ./Docker/Dockerfile --tag $IMAGE_NAME
+
+      - name: Extract image as Artifact
+        run: docker save --output ExtractedImage.tar $IMAGE_NAME
+
+      - name: Publish image as Artifact
+        uses: actions/upload-artifact@v1
+        with:
+          name: ContainerImage
+          path: ExtractedImage.tar
+
+  # Push image to Docker Hub
+  push:
+    needs: build
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download image from Artifacts
+        uses: actions/download-artifact@v1
+        with:
+          name: ContainerImage
+
+      - name: Restore image
+        run: docker load --input ContainerImage/ExtractedImage.tar
+
+      - name: Log into Docker Hub
+        run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
+
+      - name: Tag the image with run number
+        run: docker tag $IMAGE_NAME ${{ secrets.DOCKERHUB_USERNAME }}/$IMAGE_NAME:$GITHUB_RUN_NUMBER
+
+      - name: Tag the image with latest
+        run: docker tag $IMAGE_NAME ${{ secrets.DOCKERHUB_USERNAME }}/$IMAGE_NAME:latest
+
+      - name: Push image to Docker Hub (Run Number)
+        run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/$IMAGE_NAME:$GITHUB_RUN_NUMBER
+
+      - name: Push image to Docker Hub (Latest)
+        run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/$IMAGE_NAME:latest
+
+  ## another example:
+name: Test Docker Image CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - docker/**
+  pull_request:
+    branches:
+      - main
+    paths:
+      - docker/**
+
+env:
+  imageName: dependabot-azuredevops-atscale-testimage
+  registryName: n3wt0n
+
+jobs:
+
+  buildAndPush:
+    name: Build and Push image
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: docker
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build the Docker image
+      run: docker build . --file Dockerfile.test -t $registryName/$imageName:${{ github.run_id }} -t $registryName/$imageName:latest
+    - name: Login to Docker
+      run: docker login -u $registryName -p ${{ secrets.DOCKER_HUB_PAT }}
+    - name: Push the Docker image to Docker Hub
+      run: docker push --all-tags $registryName/$imageName
