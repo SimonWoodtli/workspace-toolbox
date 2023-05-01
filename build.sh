@@ -1,6 +1,6 @@
 #!/bin/sh
 
-set -ouex pipefail
+set -uex pipefail
 
 apt-get update && apt-get -y upgrade
 
