@@ -55,8 +55,8 @@ jobs:
           labels: |
             org.opencontainers.image.title=${{ env.IMAGE_NAME }}
             org.opencontainers.image.version=${{ steps.labels.outputs.VERSION }}
-            org.opencontainers.image.description=Borderless ${{ env.IMAGE_NAME }} image
-            io.artifacthub.package.readme-url=https://raw.githubusercontent.com/SimonWoodtli/workspace/main/README.md
+            org.opencontainers.image.description=My personal ${{ env.IMAGE_NAME }} image
+            io.artifacthub.package.readme-url=https://raw.githubusercontent.com/SimonWoodtli/${{env.IMAGE_NAME }}/main/README.md
 
       ## Build image using Buildah action
       - name: Build Image
