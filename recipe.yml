@@ -1,19 +1,22 @@
 apt:
-  - build-essential
   - apt-utils
-  - libcurses-perl
-  - libncurses5
+  - man-db
+  - bash-completion
   - software-properties-common
   - apt-transport-https
   - ca-certificates
-  - man-db
-  - perl
-  - python
   - sudo
   - ssh
   - sshpass
   - sshfs
   - rsync
-  - bash-completion
+  - build-essential
+  - perl
+  - libcurses-perl
+  - libncurses5
+  - python3
+  - python3-dev
+  - libssl-dev
+  - libffi-dev
 cpan:
   - Term::Animation
