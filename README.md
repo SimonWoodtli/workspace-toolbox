@@ -3,6 +3,12 @@
 [![License](https://img.shields.io/badge/license-Apache2-brightgreen.svg)](LICENSE)
 [![wakatime](https://wakatime.com/badge/user/173067c8-7ded-4cfb-8605-b3032659c00c/project/5399d506-08f4-4420-9ee9-3109b510e035.svg)](https://wakatime.com/badge/user/173067c8-7ded-4cfb-8605-b3032659c00c/project/5399d506-08f4-4420-9ee9-3109b510e035)
 
+## Installation
+
+1. install `just`
+2. get justfile: `curl -LJ ttps://raw.githubusercontent.com/SimonWoodtli/cloud-os/main/config/build/just/justfile -o $HOME/.justfile`
+3. run ..
+
 This image is a customized workspace that includes all the tools I need for my
 terminal-centric workflow and gets updated and rebuild daily. This not only
 allows me to set up and maintain an up-to-date workspace, but it also helps me
