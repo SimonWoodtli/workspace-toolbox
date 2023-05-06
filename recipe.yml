@@ -33,7 +33,6 @@ apt:
   - hyperfine
   - bat
   - weechat
-  - macchanger
   - net-tools
   - netdiscover
   - cifs-utils
