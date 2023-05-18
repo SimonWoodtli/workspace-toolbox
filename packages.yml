@@ -43,6 +43,7 @@ apt:
   - software-properties-common
   - apt-transport-https
   - ca-certificates
+  - libxkbcommon-dev
   - scdaemon
   - pcscd
   - pcregrep
