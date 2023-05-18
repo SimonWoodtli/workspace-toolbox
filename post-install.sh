@@ -5,4 +5,5 @@ ln -sf /usr/bin/distrobox-host-exec /usr/local/bin/flatpak
 ln -sf /usr/bin/distrobox-host-exec /usr/local/bin/podman
 ln -sf /usr/bin/distrobox-host-exec /usr/local/bin/rpm-ostree
 ln -sf /usr/bin/distrobox-host-exec /usr/local/bin/transactional-update
+#ln -sf /usr/bin/distrobox-host-exec /usr/local/bin/just
 ## packages that I need but are not on ubuntu yet
