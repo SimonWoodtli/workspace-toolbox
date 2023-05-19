@@ -15,3 +15,5 @@ cpan -I ${cpanPackages[@]}
 curl -LJ https://github.com/storj/storj/releases/latest/download/uplink_linux_amd64.zip -o /tmp/uplink_linux_amd64.zip
 unzip /tmp/uplink_linux_amd64.zip -d /usr/local/bin/
 chmod 755 /usr/local/bin/uplink
+
+curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin/just

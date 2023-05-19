@@ -1,6 +1,6 @@
 ## installed during container runtime firstboot script:
-# apt installs that require user input
-apt-interactive:
+## apt installs that require user input (interactive):
+apt:
   - macchanger
   - msmtp
 # Try to avoid any CLI program installs from pip/cargo/cpan/npm or any

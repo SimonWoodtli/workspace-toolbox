@@ -47,6 +47,7 @@ apt:
   - pcscd
   - pcregrep
   - sudo
+  - python3-venv
   - python-is-python3
   - ssh
   - sshpass
