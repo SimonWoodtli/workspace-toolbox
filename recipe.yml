@@ -13,7 +13,7 @@ pipx:
 npm:
   - browser-sync
 sdk:
-  - java 8.0.302-open
+  - 8.0.302-open
 # only install bling programs or if you need latest version with nix,
 # don't install any language/library/framework with nix. Cause 
 # Collaboration gets annoying => keep it to a minimum
